@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Reading the two datasets for plotting
 data = pd.read_csv('output/data.csv')
@@ -18,16 +19,20 @@ grouped_customers = data.groupby(['device_id', 'place', 'start_date']).agg({
     'sum'
 }).reset_index()
 
-# Plotting visits
-fig, ax = plt.subplots(figsize=(30, 10))
-grouped_visits.pivot(index='start_date',
-                     columns='place',
-                     values='visit_weight').plot(ax=ax)
-st.pyplot(fig)
+# Plot the total estimated visits of each venue over time, using both the visit_weight and customer_weight
+fig, ax = plt.subplots(2, 1, figsize=(30, 10))
+sns.lineplot(data=grouped_visits,
+             x='start_date',
+             y='visit_weight',
+             hue='place',
+             ax=ax[0])
+sns.lineplot(data=grouped_customers,
+             x='start_date',
+             y='customer_weight',
+             hue='place',
+             ax=ax[1])
+ax[0].set_title('Total estimated visits over time')
+ax[1].set_title('Total estimated customers over time')
 
-# Plotting customers
-fig, ax = plt.subplots(figsize=(30, 10))
-grouped_customers.pivot(index='start_date',
-                        columns='place',
-                        values='customer_weight').plot(ax=ax)
+# Show the plot in Streamlit
 st.pyplot(fig)
