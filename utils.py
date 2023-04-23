@@ -1,20 +1,49 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
+import plotly.express as px
+import plotly.graph_objects as go
 import folium
 from typing import Tuple, List
 from streamlit_folium import st_folium
 from notebooks.custom_functions import (
-    find_optimal_clusters,
+    optimal_clusters_sse,
     get_customer_types,
     get_customer_types,
 )
 
-#! Selecting things
+# PARAMETERS
+COLOR_DISCRETE_SEQUENCE = ["blue", "orange", "green", "red"]
+
+#! Subfunctions
 
 
-def multi_select_venues(data: pd.DataFrame) -> None:
+# _grouping_data that returns grouped_visits, grouped_customers
+def _grouping_data(data: pd.DataFrame, visits: pd.DataFrame,
+                   column: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """
+    This function groups the data by place and column.
+    Args:
+        data (pd.DataFrame): Dataframe with the data.
+        visits (pd.DataFrame): Dataframe with the visits.
+        column (str): Column to group by.
+    Returns:
+        grouped_visits (pd.DataFrame): Dataframe with the grouped visits.
+        grouped_customers (pd.DataFrame): Dataframe with the grouped customers.
+    """
+    # Grouping data
+    grouped_visits = visits.groupby(['place', column]).agg({
+        'visit_weight':
+        'sum'
+    }).reset_index()
+    grouped_customers = data.groupby(['place', column]).agg({
+        'customer_weight':
+        'sum'
+    }).reset_index()
+
+    return grouped_visits, grouped_customers
+
+
+def _multi_select_venues(data: pd.DataFrame) -> List[str]:
     """
     This function allows the user to select venues to plot.
     Args:
@@ -35,7 +64,7 @@ def multi_select_venues(data: pd.DataFrame) -> None:
     return selected_venues
 
 
-def one_select_venue(data: pd.DataFrame) -> None:
+def _one_select_venue(data: pd.DataFrame) -> str:
     """
     This function allows the user to select a venue to plot.
     Args:
@@ -56,72 +85,52 @@ def one_select_venue(data: pd.DataFrame) -> None:
     return selected_venue
 
 
-# def display_venue_filters(data: pd.DataFrame) -> Tuple[str, str]:
-#     """
-#     This function displays the venue filters in the sidebar.
-#     Args:
-#         data (pd.DataFrame): Dataframe with the data.
-#     Returns:
-#         Venue and color.
-#     """
-#     venue_list = data['place'].unique().tolist()
-#     venue_list.sort()
-#     venue = st.sidebar.selectbox('Select Venue:', venue_list)
-#     color_map = {
-#         'alpharetta': 'blue',
-#         'highway': 'orange',
-#         'holcomb': 'green',
-#         'molly': 'red'
-#     }
-#     color = color_map.get(venue, 'black')
-#     st.header(f'Venue: {venue}')
-#     return venue, color
-
-
-#! Analysis
-def analysis_date_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
+#! Analysis functions
+def analysis_date_level(data: pd.DataFrame, visits: pd.DataFrame,
+                        column: str) -> None:
     """
     This function plots the analysis at date level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
         visits (pd.DataFrame): Dataframe with the visits.
+        column (str): Column to group by.
     Returns:
         Analysis at date level.
     """
-    # Plotting analysis at date level
     st.subheader('Analysis at date level')
     st.caption(
         'Total estimated visits and customers per Planet Fitness location over time'
     )
 
     # Grouping data
-    grouped_visits = visits.groupby(['place', 'start_date']).agg({
-        'visit_weight':
-        'sum'
-    }).reset_index()
-    grouped_customers = data.groupby(['device_id', 'place',
-                                      'start_date']).agg({
-                                          'customer_weight':
-                                          'sum'
-                                      }).reset_index()
+    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+
+    # Selecting venues
+    selected_venues = _multi_select_venues(data)
+
+    # Filtering data for selected venues
+    grouped_visits = grouped_visits[grouped_visits['place'].isin(
+        selected_venues)]
+    grouped_customers = grouped_customers[grouped_customers['place'].isin(
+        selected_venues)]
 
     # Plotting
-    fig, ax = plt.subplots(2, 1, figsize=(50, 10))
-    sns.lineplot(data=grouped_visits,
-                 x='start_date',
-                 y='visit_weight',
-                 hue='place',
-                 ax=ax[0])
-    sns.lineplot(data=grouped_customers,
-                 x='start_date',
-                 y='customer_weight',
-                 hue='place',
-                 ax=ax[1])
-    ax[0].set_title('Total estimated visits over time')
-    ax[1].set_title('Total estimated customers over time')
+    fig_visits = px.line(grouped_visits,
+                         x='start_date',
+                         y='visit_weight',
+                         color='place',
+                         title='Total estimated visits over time',
+                         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
+    fig_customers = px.line(grouped_customers,
+                            x='start_date',
+                            y='customer_weight',
+                            color='place',
+                            title='Total estimated customers over time',
+                            color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
-    st.pyplot(fig)
+    st.plotly_chart(fig_visits, use_container_width=False)
+    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
@@ -133,12 +142,14 @@ def analysis_date_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
         st.write('')
 
 
-def analysis_hour_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
+def analysis_hour_level(data: pd.DataFrame, visits: pd.DataFrame,
+                        column: str) -> None:
     """
     This function plots the analysis at hour level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
         visits (pd.DataFrame): Dataframe with the visits.
+        column (str): Column to group by.
     Returns:
         Analysis at hour level.
     """
@@ -148,33 +159,34 @@ def analysis_hour_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
     )
 
     # Grouping data
-    grouped_visits = visits.groupby(['place', 'visit_hour']).agg({
-        'visit_weight':
-        'sum'
-    }).reset_index()
-    grouped_customers = data.groupby(['device_id', 'place',
-                                      'visit_hour']).agg({
-                                          'customer_weight':
-                                          'sum'
-                                      }).reset_index()
+    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+
+    # Selecting venues
+    selected_venues = _multi_select_venues(data)
+
+    # Filtering data for selected venues
+    grouped_visits = grouped_visits[grouped_visits['place'].isin(
+        selected_venues)]
+    grouped_customers = grouped_customers[grouped_customers['place'].isin(
+        selected_venues)]
 
     # Plotting
-    fig, ax = plt.subplots(2, 1, figsize=(50, 10))
-    sns.lineplot(data=grouped_visits,
-                 x='visit_hour',
-                 y='visit_weight',
-                 hue='place',
-                 ax=ax[0])
-    sns.lineplot(data=grouped_customers,
-                 x='visit_hour',
-                 y='customer_weight',
-                 hue='place',
-                 ax=ax[1])
-    ax[0].set_title('Average estimated visits over time')
-    ax[1].set_title('Average estimated customers over time')
+    fig_visits = px.line(grouped_visits,
+                         x='visit_hour',
+                         y='visit_weight',
+                         color='place',
+                         title='Average estimated visits over time',
+                         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
+    fig_customers = px.line(grouped_customers,
+                            x='visit_hour',
+                            y='customer_weight',
+                            color='place',
+                            title='Average estimated customers over time',
+                            color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
-    st.pyplot(fig)
+    st.plotly_chart(fig_visits)
+    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
@@ -186,12 +198,14 @@ def analysis_hour_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
         st.write('')
 
 
-def analysis_day_week_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
+def analysis_day_week_level(data: pd.DataFrame, visits: pd.DataFrame,
+                            column: str) -> None:
     """
     This function plots the analysis at day week level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
         visits (pd.DataFrame): Dataframe with the visits.
+        column (str): Column to group by.
     Returns:
         Analysis at day week level.
     """
@@ -206,42 +220,44 @@ def analysis_day_week_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
         'Sunday'
     ]
 
-    grouped_visits = visits.groupby(['place', 'day_of_week']).agg({
-        'visit_weight':
-        'sum'
-    }).reset_index()
-    grouped_customers = data.groupby(['device_id', 'place',
-                                      'day_of_week']).agg({
-                                          'customer_weight':
-                                          'sum'
-                                      }).reset_index()
+    # Grouping data
+    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
 
-    grouped_visits['day_of_week'] = pd.Categorical(
-        grouped_visits['day_of_week'],
-        categories=categories_order,
-        ordered=True)
-    grouped_customers['day_of_week'] = pd.Categorical(
-        grouped_customers['day_of_week'],
-        categories=categories_order,
-        ordered=True)
+    # Selecting venues
+    selected_venues = _multi_select_venues(data)
+
+    # Filtering data for selected venues
+    grouped_visits = grouped_visits[grouped_visits['place'].isin(
+        selected_venues)]
+    grouped_customers = grouped_customers[grouped_customers['place'].isin(
+        selected_venues)]
+
+    # Ordering data
+    grouped_visits['to_sort'] = grouped_visits['day_of_week'].apply(
+        lambda x: categories_order.index(x))
+    grouped_visits = grouped_visits.sort_values(by='to_sort')
+
+    grouped_customers['to_sort'] = grouped_customers['day_of_week'].apply(
+        lambda x: categories_order.index(x))
+    grouped_customers = grouped_customers.sort_values(by='to_sort')
 
     # Plotting
-    fig, ax = plt.subplots(2, 1, figsize=(50, 10))
-    sns.lineplot(data=grouped_visits,
-                 x='day_of_week',
-                 y='visit_weight',
-                 hue='place',
-                 ax=ax[0])
-    sns.lineplot(data=grouped_customers,
-                 x='day_of_week',
-                 y='customer_weight',
-                 hue='place',
-                 ax=ax[1])
-    ax[0].set_title('Average estimated visits over time')
-    ax[1].set_title('Average estimated customers over time')
+    fig_visits = px.line(grouped_visits,
+                         x='day_of_week',
+                         y='visit_weight',
+                         color='place',
+                         title='Average estimated visits over time',
+                         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
+    fig_customers = px.line(grouped_customers,
+                            x='day_of_week',
+                            y='customer_weight',
+                            color='place',
+                            title='Average estimated customers over time',
+                            color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
-    st.pyplot(fig)
+    st.plotly_chart(fig_visits)
+    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
@@ -253,12 +269,14 @@ def analysis_day_week_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
         st.write('')
 
 
-def analysis_weekend_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
+def analysis_weekend_level(data: pd.DataFrame, visits: pd.DataFrame,
+                           column: str) -> None:
     """
     This function plots the analysis at weekend level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
         visits (pd.DataFrame): Dataframe with the visits.
+        column (str): Column to group by.
     Returns:
         Analysis at weekend level.
     """
@@ -268,32 +286,34 @@ def analysis_weekend_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
     )
 
     # Grouping data
-    grouped_visits = visits.groupby(['place', 'weekend']).agg({
-        'visit_weight':
-        'sum'
-    }).reset_index()
-    grouped_customers = data.groupby(['device_id', 'place', 'weekend']).agg({
-        'customer_weight':
-        'sum'
-    }).reset_index()
+    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+
+    # Selecting venues
+    selected_venues = _multi_select_venues(data)
+
+    # Filtering data for selected venues
+    grouped_visits = grouped_visits[grouped_visits['place'].isin(
+        selected_venues)]
+    grouped_customers = grouped_customers[grouped_customers['place'].isin(
+        selected_venues)]
 
     # Plotting
-    fig, ax = plt.subplots(2, 1, figsize=(50, 10))
-    sns.barplot(data=grouped_visits,
-                x='weekend',
-                y='visit_weight',
-                hue='place',
-                ax=ax[0])
-    sns.barplot(data=grouped_customers,
-                x='weekend',
-                y='customer_weight',
-                hue='place',
-                ax=ax[1])
-    ax[0].set_title('Average estimated visits over time')
-    ax[1].set_title('Average estimated customers over time')
+    fig_visits = px.bar(grouped_visits,
+                        x='weekend',
+                        y='visit_weight',
+                        color='place',
+                        title='Average estimated visits over time',
+                        color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
+    fig_customers = px.bar(grouped_customers,
+                           x='weekend',
+                           y='customer_weight',
+                           color='place',
+                           title='Average estimated customers over time',
+                           color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
-    st.pyplot(fig)
+    st.plotly_chart(fig_visits)
+    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
@@ -306,12 +326,14 @@ def analysis_weekend_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
         st.write('')
 
 
-def analysis_month_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
+def analysis_month_level(data: pd.DataFrame, visits: pd.DataFrame,
+                         column: str) -> None:
     """
     This function plots the analysis at month level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
         visits (pd.DataFrame): Dataframe with the visits.
+        column (str): Column to group by.
     Returns:
         Analysis at month level.
     """
@@ -326,39 +348,45 @@ def analysis_month_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
         'August', 'September', 'October', 'November', 'December'
     ]
 
-    grouped_visits = visits.groupby(['place', 'month']).agg({
-        'visit_weight':
-        'sum'
-    }).reset_index()
-    grouped_customers = data.groupby(['device_id', 'place', 'month']).agg({
-        'customer_weight':
-        'sum'
-    }).reset_index()
+    # Grouping data
+    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
 
-    grouped_visits['month'] = pd.Categorical(grouped_visits['month'],
-                                             categories=categories_order,
-                                             ordered=True)
-    grouped_customers['month'] = pd.Categorical(grouped_customers['month'],
-                                                categories=categories_order,
-                                                ordered=True)
+    # Selecting venues
+    selected_venues = _multi_select_venues(data)
+
+    # Filtering data for selected venues
+    grouped_visits = grouped_visits[grouped_visits['place'].isin(
+        selected_venues)]
+    grouped_customers = grouped_customers[grouped_customers['place'].isin(
+        selected_venues)]
+
+    # Ordering data
+    grouped_visits['to_sort'] = grouped_visits['month'].apply(
+        lambda x: categories_order.index(x))
+    grouped_visits = grouped_visits.sort_values(by='to_sort')
+
+    grouped_customers['to_sort'] = grouped_customers['month'].apply(
+        lambda x: categories_order.index(x))
+    grouped_customers = grouped_customers.sort_values(by='to_sort')
 
     # Plotting
-    fig, ax = plt.subplots(2, 1, figsize=(50, 10))
-    sns.lineplot(data=grouped_visits,
-                 x='month',
-                 y='visit_weight',
-                 hue='place',
-                 ax=ax[0])
-    sns.lineplot(data=grouped_customers,
-                 x='month',
-                 y='customer_weight',
-                 hue='place',
-                 ax=ax[1])
-    ax[0].set_title('Average estimated visits over time')
-    ax[1].set_title('Average estimated customers over time')
+    fig_visits = px.line(grouped_visits,
+                         x='month',
+                         y='visit_weight',
+                         color='place',
+                         title='Average estimated visits over time',
+                         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
+    fig_customers = px.line(grouped_customers,
+                            x='month',
+                            y='customer_weight',
+                            color='place',
+                            title='Average estimated customers over time',
+                            color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
-    st.pyplot(fig)
+    # st.pyplot(fig)
+    st.plotly_chart(fig_visits)
+    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
@@ -371,13 +399,14 @@ def analysis_month_level(data: pd.DataFrame, visits: pd.DataFrame) -> None:
         st.write('')
 
 
-def analysis_distance_from_home_level(data: pd.DataFrame,
-                                      visits: pd.DataFrame) -> None:
+def analysis_distance_from_home_level(data: pd.DataFrame, visits: pd.DataFrame,
+                                      column: str) -> None:
     """
     This function plots the analysis at distance from home level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
         visits (pd.DataFrame): Dataframe with the visits.
+        column (str): Column to group by.
     Returns:
         Analysis at distance from home level.
     """
@@ -387,34 +416,35 @@ def analysis_distance_from_home_level(data: pd.DataFrame,
     )
 
     # Grouping data
-    grouped_visits = visits.groupby(['place',
-                                     'distance_from_home_miles']).agg({
-                                         'visit_weight':
-                                         'sum'
-                                     }).reset_index()
-    grouped_customers = data.groupby(
-        ['device_id', 'place', 'distance_from_home_miles']).agg({
-            'customer_weight':
-            'sum'
-        }).reset_index()
+    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+
+    # Selecting venues
+    selected_venues = _multi_select_venues(data)
+
+    # Filtering data for selected venues
+    grouped_visits = grouped_visits[grouped_visits['place'].isin(
+        selected_venues)]
+    grouped_customers = grouped_customers[grouped_customers['place'].isin(
+        selected_venues)]
 
     # Plotting
-    fig, ax = plt.subplots(2, 1, figsize=(50, 10))
-    sns.kdeplot(data=grouped_visits,
-                x='distance_from_home_miles',
-                hue='place',
-                fill=True,
-                ax=ax[0])
-    sns.kdeplot(data=grouped_customers,
-                x='distance_from_home_miles',
-                hue='place',
-                fill=True,
-                ax=ax[1])
-    ax[0].set_title('Distribution of distance from home for visits')
-    ax[1].set_title('Distribution of distance from home for customers')
+    fig_visits = px.histogram(
+        grouped_visits,
+        x='distance_from_home_miles',
+        color='place',
+        title='Distribution of distance from home for visits',
+        color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
+    fig_customers = px.histogram(
+        grouped_customers,
+        x='distance_from_home_miles',
+        color='place',
+        title='Distribution of distance from home for customers',
+        color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
-    st.pyplot(fig)
+    # st.pyplot(fig)
+    st.plotly_chart(fig_visits)
+    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
@@ -429,13 +459,14 @@ def analysis_distance_from_home_level(data: pd.DataFrame,
         st.write('')
 
 
-def analysis_distance_from_work_level(data: pd.DataFrame,
-                                      visits: pd.DataFrame) -> None:
+def analysis_distance_from_work_level(data: pd.DataFrame, visits: pd.DataFrame,
+                                      column: str) -> None:
     """
     This function plots the analysis at distance from work level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
         visits (pd.DataFrame): Dataframe with the visits.
+        column (str): Column to group by.
     Returns:
         Analysis at distance from work level.
     """
@@ -445,34 +476,34 @@ def analysis_distance_from_work_level(data: pd.DataFrame,
     )
 
     # Grouping data
-    grouped_visits = visits.groupby(['place',
-                                     'distance_from_work_miles']).agg({
-                                         'visit_weight':
-                                         'sum'
-                                     }).reset_index()
-    grouped_customers = data.groupby(
-        ['device_id', 'place', 'distance_from_work_miles']).agg({
-            'customer_weight':
-            'sum'
-        }).reset_index()
+    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+
+    # Selecting venues
+    selected_venues = _multi_select_venues(data)
+
+    # Filtering data for selected venues
+    grouped_visits = grouped_visits[grouped_visits['place'].isin(
+        selected_venues)]
+    grouped_customers = grouped_customers[grouped_customers['place'].isin(
+        selected_venues)]
 
     # Plotting
-    fig, ax = plt.subplots(2, 1, figsize=(50, 10))
-    sns.kdeplot(data=grouped_visits,
-                x='distance_from_work_miles',
-                hue='place',
-                fill=True,
-                ax=ax[0])
-    sns.kdeplot(data=grouped_customers,
-                x='distance_from_work_miles',
-                hue='place',
-                fill=True,
-                ax=ax[1])
-    ax[0].set_title('Distribution of distance from work for visits')
-    ax[1].set_title('Distribution of distance from work for customers')
+    fig_visits = px.histogram(
+        grouped_visits,
+        x='distance_from_work_miles',
+        color='place',
+        title='Distribution of distance from work for visits',
+        color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
+    fig_customers = px.histogram(
+        grouped_customers,
+        x='distance_from_work_miles',
+        color='place',
+        title='Distribution of distance from work for customers',
+        color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
-    st.pyplot(fig)
+    st.plotly_chart(fig_visits)
+    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
@@ -487,111 +518,14 @@ def analysis_distance_from_work_level(data: pd.DataFrame,
 
 
 #! GEO-LOCATION ANALYSIS
-# def location_venues(data: pd.DataFrame, color_underperforming: str,
-#                     color_wellperforming: str) -> None:
-#     """
-#     This function plots the location of the venues.
-#     Args:
-#         data (pd.DataFrame): Dataframe with the data.
-#         color_underperforming (str): Color for underperforming venues.
-#         color_wellperforming (str): Color for wellperforming venues.
-#     Returns:
-#         Location of the venues.
-#     """
-#         m = folium.Map(
-#         location=[data['venue_lat'].mean(), data['venue_long'].mean()],
-#         zoom_start=14,
-#         tiles='openstreetmap')
-
-#     # Add a different color to place = 'alpharetta'
-#     for i, place in enumerate(data['place'].unique()):
-#         if place == 'alpharetta':
-#             color = color_underperforming
-#         else:
-#             color = color_wellperforming
-#         data_place = data[data['place'] == place]
-
-#         # Add a marker for each place
-#         folium.Marker(
-#             location=[
-#                 data_place['venue_lat'].mean(),
-#                 data_place['venue_long'].mean()
-#             ],
-#             popup=place,
-#             icon=folium.Icon(color=color, icon='info-sign'),
-#         ).add_to(m)
-
-#         # Including a legend for Alpharetta
-#         legend_html = '''
-#         <div style='position: fixed;
-#                     bottom: 50px; left: 50px; width: 150px; height: 70px;
-#                     border:2px solid grey; z-index:9999; font-size:14px;
-#                     '>&nbsp; Underperforming &nbsp; <i class='fa fa-map-marker fa-2x' style='color:red'></i><br>
-#                     &nbsp; Well_performing &nbsp; <i class='fa fa-map-marker fa-2x' style='color:blue'></i>
-#         </div>
-#         '''
-#         m.get_root().html.add_child(folium.Element(legend_html))
-
-#     # Display the map with the necessary zoom
-#     m.fit_bounds(m.get_bounds())
-#     st_folium(m, width=700, height=450)
-
-# def map_venue(customers: pd.DataFrame, venue: str, color: str) -> None:
-#     """
-#     This function plots the map of Alpharetta.
-#     Args:
-#         data (pd.DataFrame): Dataframe with the data.
-#     Returns:
-#         Map of Alpharetta.
-#     """
-#     st.subheader('Geospatial analysis per Planet Fitness location')
-#     st.caption(
-#         'Origin of customers per Planet Fitness location (based on home location), and trip to work'
-#     )
-
-#     # Selecting customers data
-#     customers_venue = customers[customers['place'] == venue]
-
-#     m = folium.Map(
-#         location=[
-#             customers['venue_lat'].mean(),
-#             customers['venue_long'].mean(),
-#         ],
-#         zoom_start=10,
-#         tiles='openstreetmap',
-#     )
-
-#     # Venue
-#     for _, row in customers_venue.iterrows():
-#         folium.CircleMarker(
-#             [row['venue_lat'], row['venue_long']],
-#             radius=20,
-#             fill_color='black',
-#         ).add_to(m)
-
-#         folium.CircleMarker(
-#             [row['user_home_lat'], row['user_home_long']],
-#             radius=10,
-#             fill_color=color,
-#         ).add_to(m)
-
-#         folium.PolyLine([[row['user_home_lat'], row['user_home_long']],
-#                          [row['user_work_lat'], row['user_work_long']]],
-#                         color=color).add_to(m)
-
-#     # Display the map
-#     st_folium(m, width=700, height=450)
 
 
-def map_venues(data: pd.DataFrame,
-               customers: pd.DataFrame,
-               selected_venues: List[str] = []) -> None:
+def map_venues(data: pd.DataFrame, customers: pd.DataFrame) -> None:
     """
     This function plots the map of all venues.
     Args:
         data (pd.DataFrame): Dataframe with the data.
         customers (pd.DataFrame): Dataframe with the customers data.
-        selected_venues (List[str]): List of selected venues to plot. If empty, all venues will be plotted.
     Returns:
         Map of selected venues.
     """
@@ -599,6 +533,9 @@ def map_venues(data: pd.DataFrame,
     st.caption(
         'Location of Planet Fitness gyms, and origin of customers per Planet Fitness location (based on home location), and trip to work'
     )
+    # Selecting venues
+    selected_venues = _multi_select_venues(data)
+
     # Create a dictionary of colors for each venue
     color_dict = {
         'alpharetta': 'blue',
@@ -660,7 +597,7 @@ def map_venues(data: pd.DataFrame,
         st.write('')
 
 
-def cluster_analysis(customers: pd.DataFrame, selected_venue: str) -> None:
+def cluster_analysis(customers: pd.DataFrame, data: pd.DataFrame) -> None:
     """
     This function plots the map of all venues.
     Args:
@@ -671,6 +608,9 @@ def cluster_analysis(customers: pd.DataFrame, selected_venue: str) -> None:
     """
     st.subheader('Clustering analysis')
     st.caption('Clustering analysis of the customers based on their behavior')
+
+    # Selecting venues
+    selected_venue = _one_select_venue(data)
 
     # Selecting customers data
     customers = customers.drop(
@@ -686,8 +626,22 @@ def cluster_analysis(customers: pd.DataFrame, selected_venue: str) -> None:
         ['device_id', 'place'], axis=1).reset_index(drop=True)
 
     # Applying clustering algorithm
-    fig = find_optimal_clusters(customers_behavior, 10, 0.002)
-    st.pyplot(fig)
+    sse = optimal_clusters_sse(customers_behavior, 10, 0.002)
+
+    # Plotting the SSE
+
+    fig = go.Figure(data=go.Scatter(x=list(sse.keys()),
+                                    y=list(sse.values()),
+                                    mode='markers+lines',
+                                    marker=dict(color='red'),
+                                    name='SSE'))
+    fig.update_layout(
+        title='SSE - Sum of Squared Euclidean distances to centroid',
+        xaxis_title='Number of clusters',
+        yaxis_title='SSE')
+
+    # pyplot with specific width and height
+    st.plotly_chart(fig)
 
     number_clusters = {
         'alpharetta': 3,

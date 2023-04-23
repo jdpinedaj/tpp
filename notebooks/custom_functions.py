@@ -63,8 +63,8 @@ def remove_outliers(df: pd.DataFrame, col: str, q1: float,
     return df
 
 
-def find_optimal_clusters(data: pd.DataFrame, max_k: int,
-                          min_percent: float) -> None:
+def optimal_clusters_sse(data: pd.DataFrame, max_k: int,
+                         min_percent: float) -> dict:
     """
     This function finds the optimal number of clusters for a dataset based on a minimum percentage per cluster.
     Args:
@@ -72,7 +72,7 @@ def find_optimal_clusters(data: pd.DataFrame, max_k: int,
         max_k (int): The maximum number of clusters to be tested.
         min_percent (float): The minimum percentage of data points that a cluster must contain.
     Returns:
-        Graph of the SSE for each number of clusters.
+        sse (dict): The sum of squared errors for each number of clusters.
     """
     sse = {}
     for k in range(1, max_k + 1):
@@ -82,11 +82,7 @@ def find_optimal_clusters(data: pd.DataFrame, max_k: int,
         if any(cluster_counts < min_percent):
             break
         sse[k] = kmeans.inertia_  # Inertia: Sum of distances of samples to their closest cluster center
-    plt.figure()
-    plt.plot(list(sse.keys()), list(sse.values()), marker='o', color='red')
-    plt.xlabel("Number of clusters")
-    plt.ylabel("SSE - Sum of Squared Euclidean distances to centroid")
-    return plt.show()
+    return sse
 
 
 def get_customer_types(data: pd.DataFrame, n_clusters: int) -> pd.DataFrame:
