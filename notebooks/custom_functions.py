@@ -86,7 +86,7 @@ def find_optimal_clusters(data: pd.DataFrame, max_k: int,
     plt.plot(list(sse.keys()), list(sse.values()), marker='o', color='red')
     plt.xlabel("Number of clusters")
     plt.ylabel("SSE - Sum of Squared Euclidean distances to centroid")
-    plt.show()
+    return plt.show()
 
 
 def get_customer_types(data: pd.DataFrame, n_clusters: int) -> pd.DataFrame:

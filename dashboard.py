@@ -1,9 +1,9 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
-import folium
 from utils import (
+    multi_select_venues,
+    one_select_venue,
+    # display_venue_filters,
     analysis_date_level,
     analysis_hour_level,
     analysis_day_week_level,
@@ -11,59 +11,74 @@ from utils import (
     analysis_month_level,
     analysis_distance_from_home_level,
     analysis_distance_from_work_level,
-    map_venue,
+    # location_venues,
+    # map_venue,
+    map_venues,
+    cluster_analysis,
 )
 
-#! Reading data
-# Reading the two datasets for plotting
-data = pd.read_csv('output/data.csv')
-visits = pd.read_csv('output/visits.csv')
-customers = pd.read_csv('output/customers.csv')
-customers_alpharetta = pd.read_csv('output/customers_alpharetta.csv')
-customers_highway = pd.read_csv('output/customers_highway.csv')
-customers_holcomb = pd.read_csv('output/customers_holcomb.csv')
-customers_molly = pd.read_csv('output/customers_molly.csv')
+APP_TITLE = 'Planet Fitness Customer Analysis'
 
-#! Analysis
-st.title('Analysis')
-############################################
-# Plotting analysis at date level
-analysis_date_level(data, visits)
 
-############################################
-# Plotting analysis at hour level
-analysis_hour_level(data, visits)
-############################################
+def main():
+    st.set_page_config(page_title=APP_TITLE,
+                       layout='wide',
+                       page_icon=':chart_with_upwards_trend:')
+    st.image(image='images/tpp-logo.png', use_column_width=False, width=200)
+    st.title(APP_TITLE)
 
-############################################
+    #! Load data
+    # Reading the two datasets for plotting
+    data = pd.read_csv('output/data.csv')
+    visits = pd.read_csv('output/visits.csv')
+    customers = pd.read_csv('output/customers.csv')
 
-# Plotting analysis at day of week level
-analysis_day_week_level(data, visits)
+    # Selecting which analysis to show using buttons
+    analysis = st.sidebar.radio(
+        'Select analysis',
+        [
+            'Date',
+            'Hour',
+            'Day of Week',
+            'Weekend',
+            'Month',
+            'Distance from Home',
+            'Distance from Work',
+            # 'Location of all venues', 'Geo-location one venue',
+            'Geo-location all venues',
+            'Clustering analysis',
+        ])
 
-############################################
+    if analysis == 'Date':
+        analysis_date_level(data, visits)
+    elif analysis == 'Hour':
+        analysis_hour_level(data, visits)
+    elif analysis == 'Day of Week':
+        analysis_day_week_level(data, visits)
+    elif analysis == 'Weekend':
+        analysis_weekend_level(data, visits)
+    elif analysis == 'Month':
+        analysis_month_level(data, visits)
+    elif analysis == 'Distance from Home':
+        analysis_distance_from_home_level(data, visits)
+    elif analysis == 'Distance from Work':
+        analysis_distance_from_work_level(data, visits)
+    # elif analysis == 'Location of all venues':
+    #     location_venues(data,
+    #                     color_underperforming='red',
+    #                     color_wellperforming='blue')
+    # elif analysis == 'Geo-location one venue':
+    #     venue, color = display_venue_filters(data)
+    #     map_venue(customers, venue, color)
+    elif analysis == 'Geo-location all venues':
+        selected_venues = multi_select_venues(data)
+        map_venues(data, customers, selected_venues)
+    elif analysis == 'Clustering analysis':
+        selected_venue = one_select_venue(data)
+        cluster_analysis(customers, selected_venue)
+    else:
+        st.write('Please select an analysis')
 
-# Plotting analysis at weekend level
-analysis_weekend_level(data, visits)
 
-############################################
-
-# Plotting analysis at month level
-analysis_month_level(data, visits)
-
-############################################
-
-# Plotting analysis at distance from home level
-analysis_distance_from_home_level(data, visits)
-
-############################################
-
-# Plotting analysis at distance from work level
-analysis_distance_from_work_level(data, visits)
-
-############################################
-
-#! Geo-location analysis
-
-# Plotting analysis at geo-location level
-# Alpharetta
-map_venue(customers, customers_alpharetta, 'blue')
+if __name__ == '__main__':
+    main()
