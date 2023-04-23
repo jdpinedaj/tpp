@@ -26,6 +26,7 @@ def main():
                        page_icon=':chart_with_upwards_trend:')
     st.image(image='images/tpp-logo.png', use_column_width=False, width=200)
     st.title(APP_TITLE)
+    st.set_option('deprecation.showPyplotGlobalUse', False)
 
     #! Load data
     # Reading the two datasets for plotting
