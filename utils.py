@@ -61,7 +61,7 @@ def _multi_select_venues(data: pd.DataFrame) -> List[str]:
     Args:
         data (pd.DataFrame): Dataframe with the data.
     Returns:
-        None.
+        list of selected venues (List[str]): List of selected venues.
     """
     # Get the list of venues
     venues = data['place'].unique()
@@ -80,7 +80,7 @@ def _one_select_venue(data: pd.DataFrame) -> str:
     Args:
         data (pd.DataFrame): Dataframe with the data.
     Returns:
-        None.
+        selected_venue (str): Selected venue.
     """
     # Get the list of venues
     venues = data['place'].unique()
@@ -101,15 +101,12 @@ def analysis_date_level(data: pd.DataFrame, column: str) -> None:
     This function plots the analysis at date level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
-        visits (pd.DataFrame): Dataframe with the visits.
         column (str): Column to group by.
     Returns:
         Analysis at date level.
     """
     st.subheader('Analysis at date level')
-    st.caption(
-        'Total estimated visits and customers per Planet Fitness location over time'
-    )
+    st.caption('Total estimated visits per Planet Fitness location over time')
 
     # Grouping data
     grouped_visits = _grouping_visits(data, column)
@@ -147,15 +144,13 @@ def analysis_hour_level(data: pd.DataFrame, column: str) -> None:
     This function plots the analysis at hour level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
-        visits (pd.DataFrame): Dataframe with the visits.
         column (str): Column to group by.
     Returns:
         Analysis at hour level.
     """
     st.subheader('Analysis at hour level')
     st.caption(
-        'Total estimated visits and customers per Planet Fitness location at each hour'
-    )
+        'Total estimated visits per Planet Fitness location at each hour')
 
     # Grouping data
     grouped_visits = _grouping_visits(data, column)
@@ -181,8 +176,8 @@ def analysis_hour_level(data: pd.DataFrame, column: str) -> None:
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """In the above line plot, we can see that the total estimated visits of alpharetta is lower than the other venues in all periods of the day.  
-        Alpharetta only performs well in comparison to the other venues at middays and at 19 h.
+            """In the above line plot, we can see that the customers of Alpharetta gym tend to visit the gym at midday and in the night, while the customers of Holcomb gym (which is the closest gym to Alpharetta gym) tend to visit the gym in the morning and in the night.  
+            This could suggest that Alpharetta gym is not offering the right programs or services to attract and retain customers that prefer to visit the gym in the morning.
         """)
     else:
         st.write('')
@@ -193,14 +188,13 @@ def analysis_day_week_level(data: pd.DataFrame, column: str) -> None:
     This function plots the analysis at day week level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
-        visits (pd.DataFrame): Dataframe with the visits.
         column (str): Column to group by.
     Returns:
         Analysis at day week level.
     """
     st.subheader('Analysis at day of week level')
     st.caption(
-        'Total estimated visits and customers per Planet Fitness location at each day of the week'
+        'Total estimated visits per Planet Fitness location at each day of the week'
     )
 
     # Grouping data
@@ -238,7 +232,8 @@ def analysis_day_week_level(data: pd.DataFrame, column: str) -> None:
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """From the above figure, we can see that the total estimated visits of alpharetta is lower than the other venues for all days of the week.
+            """From the above figure,we can see a similar trend for the customers of all four gyms for all days of the week, except for the customers of Holcomb gym on Fridays.  
+            This could suggest that customers that can choose between Holcomb and Alpharetta gyms tend to prefer Holcomb gym on Fridays, reducing the number of customers of Alpharetta gym on Fridays, which can cause Alpharetta gym to underperform in comparison to the other nearby gyms.
         """)
     else:
         st.write('')
@@ -249,15 +244,13 @@ def analysis_weekend_level(data: pd.DataFrame, column: str) -> None:
     This function plots the analysis at weekend level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
-        visits (pd.DataFrame): Dataframe with the visits.
         column (str): Column to group by.
     Returns:
         Analysis at weekend level.
     """
     st.subheader('Analysis at weekend level')
     st.caption(
-        'Total estimated visits and customers per Planet Fitness location per weekend'
-    )
+        'Total estimated visits per Planet Fitness location per weekend')
 
     # Grouping data
     grouped_visits = _grouping_visits(data, column)
@@ -275,6 +268,7 @@ def analysis_weekend_level(data: pd.DataFrame, column: str) -> None:
                         y='visit_weight',
                         color='place',
                         title='Average estimated visits over time',
+                        barmode='group',
                         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
@@ -283,8 +277,9 @@ def analysis_weekend_level(data: pd.DataFrame, column: str) -> None:
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """The above figure shows that the total estimated visits of alpharetta is lower than the other venues for week days and weekends.  
-        There is only one exception, which is the total estimated visits of alpharetta at weekdays in comparison to higways.
+            """In the above figure we see a similar behavior for the customers of all four gyms, except for the fact that the customers of Alpharetta gym tend to have a major preference for visiting on weekdays in comparison to customers of Highway gym.  
+            However, I can't draw any conclusions from this information, since the number of customers of Alpharetta gym is lower than the other nearby gyms.
+
         """)
     else:
         st.write('')
@@ -295,15 +290,12 @@ def analysis_month_level(data: pd.DataFrame, column: str) -> None:
     This function plots the analysis at month level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
-        visits (pd.DataFrame): Dataframe with the visits.
         column (str): Column to group by.
     Returns:
         Analysis at month level.
     """
     st.subheader('Analysis at month level')
-    st.caption(
-        'Total estimated visits and customers per Planet Fitness location per month'
-    )
+    st.caption('Total estimated visits per Planet Fitness location per month')
 
     # Grouping data
     categories_order = [
@@ -341,8 +333,8 @@ def analysis_month_level(data: pd.DataFrame, column: str) -> None:
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """From the above figure, we can see that the total estimated visits of alpharetta is lower than the other venues for all months of the year.  
-        There is only one month in which Alpharetta performs decently in comparison to the other venues, and that is in the month of November.
+            """From the above figure, we can see that the customers of Alpharetta gym underperform in comparison to the other nearby gyms in all months, except for the month of November, which is the month with lower number of estimated visits for all gyms.  
+            In addition, Holcomb gym (the closest gym to Alpharetta gym) overperforms in comparison to Alpharetta by a large margin between the months of March and June, probably taking many customers from Alpharetta gym.
         """)
     else:
         st.write('')
@@ -353,14 +345,13 @@ def analysis_distance_from_home_level(data: pd.DataFrame, column: str) -> None:
     This function plots the analysis at distance from home level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
-        visits (pd.DataFrame): Dataframe with the visits.
         column (str): Column to group by.
     Returns:
         Analysis at distance from home level.
     """
     st.subheader('Analysis at distance from home level')
     st.caption(
-        'Total estimated visits and customers per Planet Fitness location per distance from home'
+        'Total estimated visits per Planet Fitness location per distance from home'
     )
 
     # Grouping data
@@ -411,14 +402,13 @@ def analysis_distance_from_work_level(data: pd.DataFrame, column: str) -> None:
     This function plots the analysis at distance from work level.
     Args:
         data (pd.DataFrame): Dataframe with the data.
-        visits (pd.DataFrame): Dataframe with the visits.
         column (str): Column to group by.
     Returns:
         Analysis at distance from work level.
     """
     st.subheader('Analysis at distance from work level')
     st.caption(
-        'Total estimated visits and customers per Planet Fitness location per distance from work'
+        'Total estimated visits per Planet Fitness location per distance from work'
     )
 
     # Grouping data
@@ -549,7 +539,7 @@ def cluster_analysis(customers: pd.DataFrame, data: pd.DataFrame) -> None:
         data (pd.DataFrame): Dataframe with the data.
         customers (pd.DataFrame): Dataframe with the customers data.
     Returns:
-        Map of selected venues.
+        K-means clustering analysis.
     """
     st.subheader('Clustering analysis')
     st.caption('Clustering analysis of the customers based on their behavior')
@@ -643,14 +633,40 @@ def cluster_analysis(customers: pd.DataFrame, data: pd.DataFrame) -> None:
         st.write('')
 
 
-def conclusions_tpf() -> str:
+def conclusions_pf() -> str:
+    """
+    Returns the conclusions of the Planet Fitness analysis.
+    Args:
+        None
+    Returns:
+        str: The conclusions of the Planet Fitness analysis.
+    """
+    st.write("""##### Date, hours, days of the week, weekends, and months
 
-    st.write(
-        """Based on the given information about the different types of customers for Alpharetta, Holcomb, and Highway, we can identify several factors that may contribute to Alpharetta gym's underperformance in comparison to the other two nearby gyms:  
-    ---  
-    **Customer preferences on weekends:** Alpharetta gym's customers tend to have a slight preference for visiting on weekends, while Holcomb gym's customers have a high preference for visiting on weekends. Highway gym's customers also have a high preference for visiting on weekends. This may suggest that Alpharetta gym is not offering the right programs or services to attract and retain customers that prefer to visit the gym on weekends.  
-    **Competition:** Alpharetta gym's customers tend to visit other nearby gyms some times, while Holcomb and Highway gyms' customers do not tend to visit other nearby gyms that much. It is important to note that only the four Planet Fitness gyms in the area are considered as nearby gyms, as there is no more information about other gyms in the area.  
-    This may indicate that Alpharetta gym faces stronger competition in the area, which could impact its ability to attract and retain customers.  
-    Taken together, these factors suggest that the Alpharetta gym may need to adjust its approach to better meet the needs and preferences of its customers, and to better compete with nearby gyms.  
-    This could involve changes to its offerings, pricing, marketing, or other factors that affect the customer experience.  
-    """)
+From the univariate analysis, we can see that the total estimated visits of Alpharetta gym is lower than the other nearby gyms, suggesting that Alpharetta gym is underperforming in comparison to the other nearby gyms.  
+- In terms of hours, we can see that the customers of Alpharetta gym tend to visit the gym at midday and in the night, while the customers of Holcomb gym (which is the closest gym to Alpharetta gym) tend to visit the gym in the morning and in the night. This could suggest that Alpharetta gym is not offering the right programs or services to attract and retain customers that prefer to visit the gym in the morning.  
+- In terms of days of the week, we can see a similar trend for the customers of all four gyms for all days of the week, except for the customers of Holcomb gym on Fridays. This could suggest that customers that can choose between Holcomb and Alpharetta gyms tend to prefer Holcomb gym on Fridays, reducing the number of customers of Alpharetta gym on Fridays, which can cause Alpharetta gym to underperform in comparison to the other nearby gyms.  
+- In terms of weekends, we see a similar behavior for the customers of all four gyms, except for the fact that the customers of Alpharetta gym tend to have a major preference for visiting on weekdays in comparison to customers of Highway gym. However, I can't draw any conclusions from this information, since the number of customers of Alpharetta gym is lower than the other nearby gyms.  
+- In terms of months, we can see that the customers of Alpharetta gym underperform in comparison to the other nearby gyms in all months, except for the month of November, which is the month with lower number of estimated visits for all gyms. In addition, Holcomb gym (the closest gym to Alpharetta gym) overperforms in comparison to Alpharetta by a large margin between the months of March and June, probably taking many customers from Alpharetta gym.  
+
+##### Home and work locations
+
+- The distribution of customers' distance from home to Planet Fitness in Alpharetta is more evenly spread out compared to the distribution of visits. The distribution of visits shows a significant increase for those who live closer to Planet Fitness in Alpharetta, indicating that customers who live in closer proximity to Planet Fitness in in Alpharetta are more likely to attend the gym frequently in comparison to those who live farther away.  
+This observation is interesting because it suggests that **proximity to the gym** is a significant factor in the frequency of visits by customers. People who live close to the gym may find it more convenient to attend the gym regularly, while those who live farther away may face more obstacles, such as transportation issues (?), that limit their ability to visit frequently.  
+Overall, this insight can be valuable for Planet Fitness as it can help them optimize their marketing efforts and target potential customers who live in the nearby areas. Additionally, the gym can also consider offering transportation or other incentives to customers who live farther away (free parking?, more parking cells?) to encourage them to visit more frequently.  
+- Similarly, the distribution of the distance from clients' workplaces to the various Planet Fitness locations is more dispersed than the distribution of visits. Customers are willing to travel further from work to visit a Planet Fitness gym, but the distance for visits is reduced (not spread as far over long distances), as would be expected.  
+In addition, the graphic reveals an intriguing observation about Molly's Planet Fitness's location. It reveals a high number of visits more than 20 miles from work (and the distance to home graph above revealed a large population with short commutes), implying that the gym is most likely located in a residential area. This observation is significant because it can help Planet Fitness better understand its customer demographics and behavior when it comes to gym visits.  
+
+##### Maps
+
+From the maps, we can see that Holcomb and Alpharetta are located in the same area.  
+This could suggest that the customers of Holcomb and Alpharetta are similar in terms of their distance from home and work. Therefore, **one possible explanation of the underperformance of Alpharetta is that the customers of Alpharetta are similar to the customers of Holcomb**. This could explain why the total estimated visits and customers of Alpharetta is lower than the other venues.  
+
+##### Clustering
+
+Based on the given information about the different types of customers for Alpharetta, Holcomb, and Highway, we can identify several factors that may contribute to Alpharetta gym's underperformance in comparison to the other two nearby gyms:  
+- **Customer preferences on weekends:** Alpharetta gym's customers tend to have a slight preference for visiting on weekends, while Holcomb gym's customers have a high preference for visiting on weekends. Highway gym's customers also have a high preference for visiting on weekends. This may suggest that Alpharetta gym is not offering the right programs or services to attract and retain customers that prefer to visit the gym on weekends.  
+- **Competition:** Alpharetta gym's customers tend to visit other nearby gyms some times, while Holcomb and Highway gyms' customers do not tend to visit other nearby gyms that much. It is important to note that only the four Planet Fitness gyms in the area are considered as nearby gyms, as there is no more information about other gyms in the area. This may indicate that Alpharetta gym faces stronger competition in the area, which could impact its ability to attract and retain customers.  
+Taken together, these factors suggest that the Alpharetta gym may need to adjust its approach to better meet the needs and preferences of its customers, and to better compete with nearby gyms.  
+This could involve changes to its offerings, pricing, marketing, or other factors that affect the customer experience."""
+             )

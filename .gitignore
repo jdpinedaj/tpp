@@ -2,7 +2,7 @@
 geojson
 
 # Documentation about the task
-document
+document/zip
 
 # Pipenv files
 Pipfile
