@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import folium
-from typing import Tuple, List
+from typing import List
 from streamlit_folium import st_folium
 from notebooks.custom_functions import (
     optimal_clusters_sse,
@@ -18,29 +18,41 @@ COLOR_DISCRETE_SEQUENCE = ["blue", "orange", "green", "red"]
 
 
 # _grouping_data that returns grouped_visits, grouped_customers
-def _grouping_data(data: pd.DataFrame, visits: pd.DataFrame,
-                   column: str) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def _grouping_visits(data: pd.DataFrame, column: str) -> pd.DataFrame:
     """
     This function groups the data by place and column.
     Args:
         data (pd.DataFrame): Dataframe with the data.
-        visits (pd.DataFrame): Dataframe with the visits.
         column (str): Column to group by.
     Returns:
         grouped_visits (pd.DataFrame): Dataframe with the grouped visits.
-        grouped_customers (pd.DataFrame): Dataframe with the grouped customers.
     """
-    # Grouping data
-    grouped_visits = visits.groupby(['place', column]).agg({
-        'visit_weight':
-        'sum'
-    }).reset_index()
-    grouped_customers = data.groupby(['place', column]).agg({
-        'customer_weight':
-        'sum'
+    grouped_visits = data.groupby(['place', column]).agg({
+        'visit_weight': 'sum'
     }).reset_index()
 
-    return grouped_visits, grouped_customers
+    return grouped_visits
+
+
+def _grouping_customers(data: pd.DataFrame, column: str) -> pd.DataFrame:
+    """
+    This function groups the data by place and column.
+    Args:
+        data (pd.DataFrame): Dataframe with the data.
+        column (str): Column to group by.
+    Returns:
+        grouped_customers (pd.DataFrame): Dataframe with the grouped customers.
+    """
+    grouped_customers = data.groupby(['place', 'device_id']).agg({
+        column:
+        'mean',
+        'customer_weight':
+        'first'
+    }).groupby(['place', column]).agg({
+        'customer_weight': 'sum'
+    }).reset_index()
+
+    return grouped_customers
 
 
 def _multi_select_venues(data: pd.DataFrame) -> List[str]:
@@ -56,11 +68,9 @@ def _multi_select_venues(data: pd.DataFrame) -> List[str]:
     venues.sort()
 
     # Create a single select widget to select venues
-    selected_venues = st.multiselect(
-        'Select venues to plot',
-        venues,
-        default=venues,
-    )
+    selected_venues = [
+        venue for venue in venues if st.checkbox(venue, value=True)
+    ]
     return selected_venues
 
 
@@ -86,8 +96,7 @@ def _one_select_venue(data: pd.DataFrame) -> str:
 
 
 #! Analysis functions
-def analysis_date_level(data: pd.DataFrame, visits: pd.DataFrame,
-                        column: str) -> None:
+def analysis_date_level(data: pd.DataFrame, column: str) -> None:
     """
     This function plots the analysis at date level.
     Args:
@@ -103,15 +112,13 @@ def analysis_date_level(data: pd.DataFrame, visits: pd.DataFrame,
     )
 
     # Grouping data
-    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+    grouped_visits = _grouping_visits(data, column)
 
     # Selecting venues
     selected_venues = _multi_select_venues(data)
 
     # Filtering data for selected venues
     grouped_visits = grouped_visits[grouped_visits['place'].isin(
-        selected_venues)]
-    grouped_customers = grouped_customers[grouped_customers['place'].isin(
         selected_venues)]
 
     # Plotting
@@ -121,29 +128,21 @@ def analysis_date_level(data: pd.DataFrame, visits: pd.DataFrame,
                          color='place',
                          title='Total estimated visits over time',
                          color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
-    fig_customers = px.line(grouped_customers,
-                            x='start_date',
-                            y='customer_weight',
-                            color='place',
-                            title='Total estimated customers over time',
-                            color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
     st.plotly_chart(fig_visits, use_container_width=False)
-    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """These line plots show the total estimated visits and customers of each gym per date.  
-            Here, we can identify the underperforming gym of Alpharetta in comparison to the other gyms.
+            """The above line plot shows the total estimated visits of each venue over time.  
+        Here, we can identify the underperforming venue of alpharetta in comparison to the other venues.
         """)
     else:
         st.write('')
 
 
-def analysis_hour_level(data: pd.DataFrame, visits: pd.DataFrame,
-                        column: str) -> None:
+def analysis_hour_level(data: pd.DataFrame, column: str) -> None:
     """
     This function plots the analysis at hour level.
     Args:
@@ -159,15 +158,13 @@ def analysis_hour_level(data: pd.DataFrame, visits: pd.DataFrame,
     )
 
     # Grouping data
-    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+    grouped_visits = _grouping_visits(data, column)
 
     # Selecting venues
     selected_venues = _multi_select_venues(data)
 
     # Filtering data for selected venues
     grouped_visits = grouped_visits[grouped_visits['place'].isin(
-        selected_venues)]
-    grouped_customers = grouped_customers[grouped_customers['place'].isin(
         selected_venues)]
 
     # Plotting
@@ -177,29 +174,21 @@ def analysis_hour_level(data: pd.DataFrame, visits: pd.DataFrame,
                          color='place',
                          title='Average estimated visits over time',
                          color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
-    fig_customers = px.line(grouped_customers,
-                            x='visit_hour',
-                            y='customer_weight',
-                            color='place',
-                            title='Average estimated customers over time',
-                            color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
     st.plotly_chart(fig_visits)
-    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """These line plots show the average estimated visits and customers of each gym per hour.  
-            Here, we can see that the total estimated visits and customers of alpharetta is lower than the other gyms in all periods of the day. Alpharetta only performs well in comparison to the other gyms at middays and at 19 h.
+            """In the above line plot, we can see that the total estimated visits of alpharetta is lower than the other venues in all periods of the day.  
+        Alpharetta only performs well in comparison to the other venues at middays and at 19 h.
         """)
     else:
         st.write('')
 
 
-def analysis_day_week_level(data: pd.DataFrame, visits: pd.DataFrame,
-                            column: str) -> None:
+def analysis_day_week_level(data: pd.DataFrame, column: str) -> None:
     """
     This function plots the analysis at day week level.
     Args:
@@ -221,7 +210,7 @@ def analysis_day_week_level(data: pd.DataFrame, visits: pd.DataFrame,
     ]
 
     # Grouping data
-    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+    grouped_visits = _grouping_visits(data, column)
 
     # Selecting venues
     selected_venues = _multi_select_venues(data)
@@ -229,17 +218,11 @@ def analysis_day_week_level(data: pd.DataFrame, visits: pd.DataFrame,
     # Filtering data for selected venues
     grouped_visits = grouped_visits[grouped_visits['place'].isin(
         selected_venues)]
-    grouped_customers = grouped_customers[grouped_customers['place'].isin(
-        selected_venues)]
 
     # Ordering data
     grouped_visits['to_sort'] = grouped_visits['day_of_week'].apply(
         lambda x: categories_order.index(x))
     grouped_visits = grouped_visits.sort_values(by='to_sort')
-
-    grouped_customers['to_sort'] = grouped_customers['day_of_week'].apply(
-        lambda x: categories_order.index(x))
-    grouped_customers = grouped_customers.sort_values(by='to_sort')
 
     # Plotting
     fig_visits = px.line(grouped_visits,
@@ -248,29 +231,20 @@ def analysis_day_week_level(data: pd.DataFrame, visits: pd.DataFrame,
                          color='place',
                          title='Average estimated visits over time',
                          color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
-    fig_customers = px.line(grouped_customers,
-                            x='day_of_week',
-                            y='customer_weight',
-                            color='place',
-                            title='Average estimated customers over time',
-                            color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
     st.plotly_chart(fig_visits)
-    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """These line plots show the average estimated visits of each gym per week day.  
-            Here, we can see that the total estimated visits and customers of alpharetta is lower than the other gyms for all days of the week.
+            """From the above figure, we can see that the total estimated visits of alpharetta is lower than the other venues for all days of the week.
         """)
     else:
         st.write('')
 
 
-def analysis_weekend_level(data: pd.DataFrame, visits: pd.DataFrame,
-                           column: str) -> None:
+def analysis_weekend_level(data: pd.DataFrame, column: str) -> None:
     """
     This function plots the analysis at weekend level.
     Args:
@@ -286,15 +260,13 @@ def analysis_weekend_level(data: pd.DataFrame, visits: pd.DataFrame,
     )
 
     # Grouping data
-    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+    grouped_visits = _grouping_visits(data, column)
 
     # Selecting venues
     selected_venues = _multi_select_venues(data)
 
     # Filtering data for selected venues
     grouped_visits = grouped_visits[grouped_visits['place'].isin(
-        selected_venues)]
-    grouped_customers = grouped_customers[grouped_customers['place'].isin(
         selected_venues)]
 
     # Plotting
@@ -304,30 +276,21 @@ def analysis_weekend_level(data: pd.DataFrame, visits: pd.DataFrame,
                         color='place',
                         title='Average estimated visits over time',
                         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
-    fig_customers = px.bar(grouped_customers,
-                           x='weekend',
-                           y='customer_weight',
-                           color='place',
-                           title='Average estimated customers over time',
-                           color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
     st.plotly_chart(fig_visits)
-    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """These bar plots show the average estimated visits of each gym per weekend.  
-            Here, we can see that the total estimated visits and customers of alpharetta is lower than the other venues for week days and weekends.  
-            There is only one exception, which is the total estimated customers and visits of alpharetta at weekdays in comparison to higways.
+            """The above figure shows that the total estimated visits of alpharetta is lower than the other venues for week days and weekends.  
+        There is only one exception, which is the total estimated visits of alpharetta at weekdays in comparison to higways.
         """)
     else:
         st.write('')
 
 
-def analysis_month_level(data: pd.DataFrame, visits: pd.DataFrame,
-                         column: str) -> None:
+def analysis_month_level(data: pd.DataFrame, column: str) -> None:
     """
     This function plots the analysis at month level.
     Args:
@@ -349,7 +312,7 @@ def analysis_month_level(data: pd.DataFrame, visits: pd.DataFrame,
     ]
 
     # Grouping data
-    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+    grouped_visits = _grouping_visits(data, column)
 
     # Selecting venues
     selected_venues = _multi_select_venues(data)
@@ -357,17 +320,11 @@ def analysis_month_level(data: pd.DataFrame, visits: pd.DataFrame,
     # Filtering data for selected venues
     grouped_visits = grouped_visits[grouped_visits['place'].isin(
         selected_venues)]
-    grouped_customers = grouped_customers[grouped_customers['place'].isin(
-        selected_venues)]
 
     # Ordering data
     grouped_visits['to_sort'] = grouped_visits['month'].apply(
         lambda x: categories_order.index(x))
     grouped_visits = grouped_visits.sort_values(by='to_sort')
-
-    grouped_customers['to_sort'] = grouped_customers['month'].apply(
-        lambda x: categories_order.index(x))
-    grouped_customers = grouped_customers.sort_values(by='to_sort')
 
     # Plotting
     fig_visits = px.line(grouped_visits,
@@ -376,31 +333,22 @@ def analysis_month_level(data: pd.DataFrame, visits: pd.DataFrame,
                          color='place',
                          title='Average estimated visits over time',
                          color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
-    fig_customers = px.line(grouped_customers,
-                            x='month',
-                            y='customer_weight',
-                            color='place',
-                            title='Average estimated customers over time',
-                            color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
     # st.pyplot(fig)
     st.plotly_chart(fig_visits)
-    st.plotly_chart(fig_customers)
 
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """These line plots show the average estimated visits of each gym per month.  
-            We can see that the total estimated visits and customers of alpharetta is lower than the other venues for all months of the year.  
-            There is only one month in which Alpharetta performs decently in comparison to the other venues, and that is in the month of September.
+            """From the above figure, we can see that the total estimated visits of alpharetta is lower than the other venues for all months of the year.  
+        There is only one month in which Alpharetta performs decently in comparison to the other venues, and that is in the month of November.
         """)
     else:
         st.write('')
 
 
-def analysis_distance_from_home_level(data: pd.DataFrame, visits: pd.DataFrame,
-                                      column: str) -> None:
+def analysis_distance_from_home_level(data: pd.DataFrame, column: str) -> None:
     """
     This function plots the analysis at distance from home level.
     Args:
@@ -416,7 +364,8 @@ def analysis_distance_from_home_level(data: pd.DataFrame, visits: pd.DataFrame,
     )
 
     # Grouping data
-    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+    grouped_visits = _grouping_visits(data, column)
+    grouped_customers = _grouping_customers(data, column)
 
     # Selecting venues
     selected_venues = _multi_select_venues(data)
@@ -449,9 +398,7 @@ def analysis_distance_from_home_level(data: pd.DataFrame, visits: pd.DataFrame,
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """These KDE plots show the distribution of distance from home for each gym.  
-            We can see that the total estimated visits and customers of alpharetta is lower than the other venues for all distances from home.  
-            The conclusion drawn from the data is that the distribution of customers distance from home to Planet Fitness in Alpharetta is more evenly spread out compared to the distribution of visits. The distribution of visits shows a significant increase for those who live closer to Planet Fitness in Alpharetta, indicating that customers who live in closer proximity to Planet Fitness in in Alpharetta are more likely to attend the gym frequently compared to those who live farther away.  
+            """The distribution of customers' distance from home to Planet Fitness in Alpharetta is more evenly spread out compared to the distribution of visits. The distribution of visits shows a significant increase for those who live closer to Planet Fitness in Alpharetta, indicating that customers who live in closer proximity to Planet Fitness in in Alpharetta are more likely to attend the gym frequently in comparison to those who live farther away.  
             This observation is interesting because it suggests that proximity to the gym is a significant factor in the frequency of visits by customers. People who live close to the gym may find it more convenient to attend the gym regularly, while those who live farther away may face more obstacles, such as transportation issues (?), that limit their ability to visit frequently.  
             Overall, this insight can be valuable for Planet Fitness as it can help them optimize their marketing efforts and target potential customers who live in the nearby areas. Additionally, the gym can also consider offering transportation or other incentives to customers who live farther away (free parking?, more parking cells?) to encourage them to visit more frequently.
             """)
@@ -459,8 +406,7 @@ def analysis_distance_from_home_level(data: pd.DataFrame, visits: pd.DataFrame,
         st.write('')
 
 
-def analysis_distance_from_work_level(data: pd.DataFrame, visits: pd.DataFrame,
-                                      column: str) -> None:
+def analysis_distance_from_work_level(data: pd.DataFrame, column: str) -> None:
     """
     This function plots the analysis at distance from work level.
     Args:
@@ -476,7 +422,8 @@ def analysis_distance_from_work_level(data: pd.DataFrame, visits: pd.DataFrame,
     )
 
     # Grouping data
-    grouped_visits, grouped_customers = _grouping_data(data, visits, column)
+    grouped_visits = _grouping_visits(data, column)
+    grouped_customers = _grouping_customers(data, column)
 
     # Selecting venues
     selected_venues = _multi_select_venues(data)
@@ -508,11 +455,9 @@ def analysis_distance_from_work_level(data: pd.DataFrame, visits: pd.DataFrame,
     show_last_analysis = st.button('Show analysis')
     if show_last_analysis:
         st.write(
-            """These KDE plots show the distribution of distance from work for each gym.  
-            Similarly, we can see that the total estimated visits and customers of alpharetta is lower than the other venues for all distances from work.  
-            The conclusion drawn from the data is that the distribution of customers distance from work to the different Planet Fitness locations is more evenly spread out compared to the distribution of visits. The graph indicates that customers are willing to travel greater distances from work to visit a Planet Fitness gym, but the frequency of visits decreases as the distance from work to the gym increases (as expected).  
-            Furthermore, the graph reveals an interesting observation about the Molly Planet Fitness location. It shows a large number of visits for a distance greater than 20 miles from work, which suggests that the gym is likely located in a residential area. This observation is important as it can help Planet Fitness to better understand the demographics of their customers and their behavior in terms of traveling to the gym.
-            """)
+            """Similarly, the distribution of the distance from clients' workplaces to the various Planet Fitness locations is more dispersed than the distribution of visits. Customers are willing to travel further from work to visit a Planet Fitness gym, but the distance for visits is reduced (not spread as far over long distances), as would be expected.  
+        In addition, the graphic reveals an intriguing observation about Molly's Planet Fitness's location. It reveals a high number of visits more than 20 miles from work (and the distance to home graph above revealed a large population with short commutes), implying that the gym is most likely located in a residential area. This observation is significant because it can help Planet Fitness better understand its customer demographics and behavior when it comes to gym visits.
+        """)
     else:
         st.write('')
 
@@ -696,3 +641,16 @@ def cluster_analysis(customers: pd.DataFrame, data: pd.DataFrame) -> None:
             """)
     else:
         st.write('')
+
+
+def conclusions_tpf() -> str:
+
+    st.write(
+        """Based on the given information about the different types of customers for Alpharetta, Holcomb, and Highway, we can identify several factors that may contribute to Alpharetta gym's underperformance in comparison to the other two nearby gyms:  
+    ---  
+    **Customer preferences on weekends:** Alpharetta gym's customers tend to have a slight preference for visiting on weekends, while Holcomb gym's customers have a high preference for visiting on weekends. Highway gym's customers also have a high preference for visiting on weekends. This may suggest that Alpharetta gym is not offering the right programs or services to attract and retain customers that prefer to visit the gym on weekends.  
+    **Competition:** Alpharetta gym's customers tend to visit other nearby gyms some times, while Holcomb and Highway gyms' customers do not tend to visit other nearby gyms that much. It is important to note that only the four Planet Fitness gyms in the area are considered as nearby gyms, as there is no more information about other gyms in the area.  
+    This may indicate that Alpharetta gym faces stronger competition in the area, which could impact its ability to attract and retain customers.  
+    Taken together, these factors suggest that the Alpharetta gym may need to adjust its approach to better meet the needs and preferences of its customers, and to better compete with nearby gyms.  
+    This could involve changes to its offerings, pricing, marketing, or other factors that affect the customer experience.  
+    """)
