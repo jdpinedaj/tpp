@@ -86,7 +86,7 @@ Finally, I created a dashboard using the `Streamlit` library to visualize the re
 
 ##### Date, hours, days of the week, weekends, and months
 
-From the univariate analysis, we can see that the total estimated visits of Alpharetta gym is lower than the other nearby gyms, suggesting that Alpharetta gym is underperforming in comparison to the other nearby gyms.
+From the univariate analysis, we can see that the total estimated visits of Alpharetta gym are lower than the other nearby gyms, suggesting that Alpharetta gym is underperforming in comparison to the other nearby gyms.
 
 In terms of hours, we can see that the customers of Alpharetta gym tend to visit the gym at midday and in the night, while the customers of Holcomb gym (which is the closest gym to Alpharetta gym) tend to visit the gym in the morning and in the night. This could suggest that Alpharetta gym is not offering the right programs or services to attract and retain customers that prefer to visit the gym in the morning.
 
@@ -102,7 +102,7 @@ The distribution of customers' distance from home to Planet Fitness in Alpharett
 
 This observation is interesting because it suggests that **proximity to the gym** is a significant factor in the frequency of visits by customers. People who live close to the gym may find it more convenient to attend the gym regularly, while those who live farther away may face more obstacles, such as transportation issues (?), that limit their ability to visit frequently.
 
-Overall, this insight can be valuable for Planet Fitness as it can help them optimize their marketing efforts and target potential customers who live in the nearby areas. Additionally, the gym can also consider offering transportation or other incentives to customers who live farther away (free parking?, more parking cells?) to encourage them to visit more frequently.
+Overall, this insight can be valuable for Planet Fitness as it can help them optimize their marketing efforts and target potential customers who live in the nearby areas. Additionally, the gym can also consider offering transportation or other incentives to customers who live farther away (free parking? more parking cells?) to encourage them to visit more frequently.
 
 Similarly, the distribution of the distance from clients' workplaces to the various Planet Fitness locations is more dispersed than the distribution of visits. Customers are willing to travel further from work to visit a Planet Fitness gym, but the distance for visits is reduced (not spread as far over long distances), as would be expected.
 
@@ -120,7 +120,7 @@ Based on the given information about the different types of customers for Alphar
 
 - **Customer preferences on weekends:** Alpharetta gym's customers tend to have a slight preference for visiting on weekends, while Holcomb gym's customers have a high preference for visiting on weekends. Highway gym's customers also have a high preference for visiting on weekends. This may suggest that Alpharetta gym is not offering the right programs or services to attract and retain customers that prefer to visit the gym on weekends.
 
-- **Competition:** Alpharetta gym's customers tend to visit other nearby gyms some times, while Holcomb and Highway gyms' customers do not tend to visit other nearby gyms that much. It is important to note that only the four Planet Fitness gyms in the area are considered as nearby gyms, as there is no more information about other gyms in the area. This may indicate that Alpharetta gym faces stronger competition in the area, which could impact its ability to attract and retain customers.
+- **Competition:** Alpharetta gym's customers tend to visit other nearby gyms sometimes, while Holcomb and Highway gyms' customers do not tend to visit other nearby gyms that much. It is important to note that only the four Planet Fitness gyms in the area are considered as nearby gyms, as there is no more information about other gyms in the area. This may indicate that Alpharetta gym faces stronger competition in the area, which could impact its ability to attract and retain customers.
 
 Taken together, these factors suggest that the Alpharetta gym may need to adjust its approach to better meet the needs and preferences of its customers, and to better compete with nearby gyms.
 This could involve changes to its offerings, pricing, marketing, or other factors that affect the customer experience.

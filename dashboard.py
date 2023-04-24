@@ -15,8 +15,6 @@ from utils import (
 
 APP_TITLE = 'Planet Fitness Customer Analysis'
 
-#TODO: Ajustar todas las conclusiones, PILAS!
-
 
 def main():
     st.set_page_config(page_title=APP_TITLE,
