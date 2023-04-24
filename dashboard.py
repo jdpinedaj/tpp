@@ -10,7 +10,7 @@ from utils import (
     analysis_distance_from_work_level,
     map_venues,
     cluster_analysis,
-    conclusions_tpf,
+    conclusions_pf,
 )
 
 APP_TITLE = 'Planet Fitness Customer Analysis'
@@ -74,7 +74,7 @@ def main():
     elif analysis == 'Clustering analysis':
         cluster_analysis(customers, data)
     elif analysis == 'Conclusions':
-        conclusions_tpf()
+        conclusions_pf()
     else:
         st.write('Please select an analysis')
 

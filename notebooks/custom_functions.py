@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 
 
@@ -29,7 +28,7 @@ def haversine_distance(lat1: float, lon1: float, lat2: float,
     Returns:
         res (float): The distance between the two points.
     """
-    r = r = 3959.87433  # In miles. For km use 6372.8 km
+    r = 3959.87433  # In miles. For km use 6372.8 km
 
     phi1 = np.radians(lat1)
     phi2 = np.radians(lat2)
