@@ -373,12 +373,14 @@ def analysis_distance_from_home_level(data: pd.DataFrame, column: str) -> None:
         x='distance_from_home_miles',
         color='place',
         title='Distribution of distance from home for visits',
+        barmode='overlay',
         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
     fig_customers = px.histogram(
         grouped_customers,
         x='distance_from_home_miles',
         color='place',
         title='Distribution of distance from home for customers',
+        barmode='overlay',
         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
@@ -430,12 +432,14 @@ def analysis_distance_from_work_level(data: pd.DataFrame, column: str) -> None:
         x='distance_from_work_miles',
         color='place',
         title='Distribution of distance from work for visits',
+        barmode='overlay',
         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
     fig_customers = px.histogram(
         grouped_customers,
         x='distance_from_work_miles',
         color='place',
         title='Distribution of distance from work for customers',
+        barmode='overlay',
         color_discrete_sequence=COLOR_DISCRETE_SEQUENCE)
 
     # Show the plot in Streamlit
